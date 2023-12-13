@@ -95,17 +95,17 @@ use serde;
 #[cfg(all(test, feature = "impl_serialize"))]
 use serde_json;
 
-mod cell;
-pub mod map;
-pub mod set;
-pub mod list;
 mod arena;
 mod bloom;
-mod impl_partial_eq;
+mod cell;
 mod impl_debug;
+mod impl_partial_eq;
+pub mod list;
+pub mod map;
+pub mod set;
 
 #[cfg(feature = "impl_serialize")]
 mod impl_serialize;
 
-pub use self::arena::{Arena, Uninitialized, NulTermStr};
+pub use self::arena::{Arena, NulTermStr, Uninitialized};
 pub use self::cell::CopyCell;

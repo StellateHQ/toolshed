@@ -2,7 +2,7 @@
 
 use std::hash::Hash;
 
-use crate::map::{Map, BloomMap, MapIter};
+use crate::map::{BloomMap, Map, MapIter};
 use crate::Arena;
 
 /// A set of values. This structure is using a `Map` with value
@@ -21,16 +21,14 @@ impl<I> Default for Set<'_, I> {
 impl<'arena, I> Set<'arena, I> {
     /// Creates a new, empty `Set`.
     pub const fn new() -> Self {
-        Set {
-            map: Map::new(),
-        }
+        Set { map: Map::new() }
     }
 
     /// Get an iterator over the elements in the set
     #[inline]
     pub fn iter(&self) -> SetIter<'arena, I> {
         SetIter {
-            inner: self.map.iter()
+            inner: self.map.iter(),
         }
     }
 
@@ -89,7 +87,7 @@ impl<'arena, I> BloomSet<'arena, I> {
     #[inline]
     pub fn iter(&self) -> SetIter<'arena, I> {
         SetIter {
-            inner: self.map.iter()
+            inner: self.map.iter(),
         }
     }
 
@@ -125,7 +123,7 @@ where
 
 /// An iterator over the elements in the set.
 pub struct SetIter<'arena, I> {
-    inner: MapIter<'arena, I, ()>
+    inner: MapIter<'arena, I, ()>,
 }
 
 impl<'arena, I> Iterator for SetIter<'arena, I> {
@@ -164,7 +162,7 @@ where
     #[inline]
     fn from(set: Set<'arena, I>) -> BloomSet<'arena, I> {
         BloomSet {
-            map: set.map.into()
+            map: set.map.into(),
         }
     }
 }
@@ -173,7 +171,7 @@ impl<'arena, I> From<BloomSet<'arena, I>> for Set<'arena, I> {
     #[inline]
     fn from(bloom_set: BloomSet<'arena, I>) -> Set<'arena, I> {
         Set {
-            map: bloom_set.map.into()
+            map: bloom_set.map.into(),
         }
     }
 }

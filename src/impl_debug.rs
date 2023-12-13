@@ -1,7 +1,7 @@
+use crate::list::{GrowableList, List, ListBuilder};
+use crate::map::{BloomMap, Map};
+use crate::set::{BloomSet, Set};
 use std::fmt::{self, Debug};
-use crate::list::{List, GrowableList, ListBuilder};
-use crate::map::{Map, BloomMap};
-use crate::set::{Set, BloomSet};
 
 impl<'arena, T> Debug for List<'arena, T>
 where

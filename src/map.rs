@@ -1,11 +1,11 @@
 //! Maps of keys to values that can be used with the `Arena`.
 
-use std::hash::{Hash, Hasher};
 use rustc_hash::FxHasher;
+use std::hash::{Hash, Hasher};
 
+use crate::bloom::bloom;
 use crate::cell::CopyCell;
 use crate::Arena;
-use crate::bloom::bloom;
 
 #[derive(Clone, Copy)]
 struct MapNode<'arena, K, V> {
@@ -62,7 +62,7 @@ impl<'arena, K, V> Map<'arena, K, V> {
     #[inline]
     pub fn iter(&self) -> MapIter<'arena, K, V> {
         MapIter {
-            next: self.root.get()
+            next: self.root.get(),
         }
     }
 
@@ -99,7 +99,7 @@ where
 
         loop {
             match node.get() {
-                None         => return node,
+                None => return node,
                 Some(parent) => {
                     if hash == parent.hash && key == parent.key {
                         return node;
@@ -125,7 +125,7 @@ where
                 let old = node.value.get();
                 node.value.set(value);
                 Some(old)
-            },
+            }
             None => {
                 let new = Some(&*arena.alloc(MapNode::new(key, hash, value)));
 
@@ -245,7 +245,7 @@ where
 /// An iterator over the entries in the map.
 /// All entries are returned in insertion order.
 pub struct MapIter<'arena, K, V> {
-    next: Option<&'arena MapNode<'arena, K, V>>
+    next: Option<&'arena MapNode<'arena, K, V>>,
 }
 
 impl<'arena, K, V: Copy> Iterator for MapIter<'arena, K, V> {

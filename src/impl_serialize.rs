@@ -1,16 +1,16 @@
-use serde::ser::{Serialize, Serializer};
 use crate::list::List;
-use crate::map::{Map, BloomMap};
-use crate::set::{Set, BloomSet};
+use crate::map::{BloomMap, Map};
+use crate::set::{BloomSet, Set};
+use serde::ser::{Serialize, Serializer};
 
 impl<'arena, T> Serialize for List<'arena, T>
 where
-    T: Serialize
+    T: Serialize,
 {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         serializer.collect_seq(self.iter())
     }
@@ -24,7 +24,7 @@ where
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         serializer.collect_map(self.iter())
     }
@@ -38,7 +38,7 @@ where
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         serializer.collect_map(self.iter())
     }
@@ -51,7 +51,7 @@ where
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         serializer.collect_seq(self.iter())
     }
@@ -64,7 +64,7 @@ where
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         serializer.collect_seq(self.iter())
     }
@@ -73,8 +73,8 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use serde_json;
     use crate::Arena;
+    use serde_json;
 
     #[test]
     fn list_can_be_serialized() {

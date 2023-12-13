@@ -53,7 +53,7 @@ const C14: u64 = 1 << 46;
 const C15: u64 = 1 << 47;
 
 static BYTE_MASKS_A: [u16; 256] = [
-//    0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F  //
+    //    0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F  //
     A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, // 0
     A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, // 1
     A__, A__, A__, A__, A01, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, A__, // 2
@@ -73,7 +73,7 @@ static BYTE_MASKS_A: [u16; 256] = [
 ];
 
 static BYTE_MASKS_B: [u32; 256] = [
-//    0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F  //
+    //    0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F  //
     B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, // 0
     B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, // 1
     B__, B__, B__, B__, B01, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, B__, // 2
@@ -93,7 +93,7 @@ static BYTE_MASKS_B: [u32; 256] = [
 ];
 
 static BYTE_MASKS_C: [u64; 256] = [
-//    0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F  //
+    //    0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F  //
     C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, // 0
     C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, // 1
     C__, C__, C__, C__, C01, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, C__, // 2
@@ -121,20 +121,22 @@ pub fn bloom<T: AsRef<[u8]>>(val: T) -> u64 {
     match s.len() {
         0 => 0x0001000000000000,
 
-        1 => 0x0002000000000000
-           | BYTE_MASKS_A[s[0] as usize] as u64,
+        1 => 0x0002000000000000 | BYTE_MASKS_A[s[0] as usize] as u64,
 
-        2 => 0x0004000000000000
-           | BYTE_MASKS_A[s[0] as usize] as u64
-           | BYTE_MASKS_B[s[1] as usize] as u64,
+        2 => {
+            0x0004000000000000
+                | BYTE_MASKS_A[s[0] as usize] as u64
+                | BYTE_MASKS_B[s[1] as usize] as u64
+        }
 
-        n => 0x0001000000000000 << n % 16
-           | BYTE_MASKS_C[s[2] as usize]
-           | BYTE_MASKS_B[s[1] as usize] as u64
-           | BYTE_MASKS_A[s[0] as usize] as u64
+        n => {
+            0x0001000000000000 << n % 16
+                | BYTE_MASKS_C[s[2] as usize]
+                | BYTE_MASKS_B[s[1] as usize] as u64
+                | BYTE_MASKS_A[s[0] as usize] as u64
+        }
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -146,14 +148,17 @@ mod test {
 
     #[test]
     fn produces_correct_number_of_bits() {
-        assert_eq!(bloom("").count_ones(), 1);      // just length
-        assert_eq!(bloom("a").count_ones(), 2);     // length + 1 byte
-        assert_eq!(bloom("ab").count_ones(), 3);    // length + 2 bytes
-        assert_eq!(bloom("abc").count_ones(), 4);   // length + 3 bytes
-        assert_eq!(bloom("abcd").count_ones(), 4);  // length + 3 bytes (ignore rest)
+        assert_eq!(bloom("").count_ones(), 1); // just length
+        assert_eq!(bloom("a").count_ones(), 2); // length + 1 byte
+        assert_eq!(bloom("ab").count_ones(), 3); // length + 2 bytes
+        assert_eq!(bloom("abc").count_ones(), 4); // length + 3 bytes
+        assert_eq!(bloom("abcd").count_ones(), 4); // length + 3 bytes (ignore rest)
         assert_eq!(bloom("abcde").count_ones(), 4);
         assert_eq!(bloom("abcdef").count_ones(), 4);
-        assert_eq!(bloom("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ").count_ones(), 4);
+        assert_eq!(
+            bloom("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ").count_ones(),
+            4
+        );
 
         assert_eq!(bloom("").count_ones(), 1);
         assert_eq!(bloom("_").count_ones(), 2);
@@ -199,7 +204,11 @@ mod test {
 
     #[test]
     fn has_low_enough_conflict_rate() {
-        let filter = bloom("alloc_bytes") | bloom("alloc") | bloom("Cell") | bloom("String") | bloom("yetAnother");
+        let filter = bloom("alloc_bytes")
+            | bloom("alloc")
+            | bloom("Cell")
+            | bloom("String")
+            | bloom("yetAnother");
         let mut matches = 0;
 
         assert!(is_match(filter, bloom("alloc_bytes")));
@@ -209,18 +218,74 @@ mod test {
         assert!(is_match(filter, bloom("yetAnother")));
 
         static WORDS: &[&str] = &[
-            "ARENA_BLOCK", "Arena", "Cell", "Self", "String", "T", "Vec", "_unchecked", "a",
-            "alignment", "alloc", "alloc_bytes", "alloc_str", "alloc_str_zero_end", "alloc_string",
-            "as", "as_bytes", "as_mut_ptr", "as_ptr", "block", "cap", "cell", "const",
-            "copy_nonoverlapping", "else", "extend_from_slice", "fn", "from_raw_parts", "from_utf",
-            "get", "grow", "if", "impl", "inline", "into", "into_bytes", "isize", "len",
-            "len_with_zero", "let", "mem", "mut", "new", "offset", "ptr", "pub", "push",
-            "replace", "return", "self", "set", "size_of", "slice", "std", "store", "str",
-            "struct", "temp", "u", "unsafe", "use", "usize", "val", "vec", "with_capacity"
+            "ARENA_BLOCK",
+            "Arena",
+            "Cell",
+            "Self",
+            "String",
+            "T",
+            "Vec",
+            "_unchecked",
+            "a",
+            "alignment",
+            "alloc",
+            "alloc_bytes",
+            "alloc_str",
+            "alloc_str_zero_end",
+            "alloc_string",
+            "as",
+            "as_bytes",
+            "as_mut_ptr",
+            "as_ptr",
+            "block",
+            "cap",
+            "cell",
+            "const",
+            "copy_nonoverlapping",
+            "else",
+            "extend_from_slice",
+            "fn",
+            "from_raw_parts",
+            "from_utf",
+            "get",
+            "grow",
+            "if",
+            "impl",
+            "inline",
+            "into",
+            "into_bytes",
+            "isize",
+            "len",
+            "len_with_zero",
+            "let",
+            "mem",
+            "mut",
+            "new",
+            "offset",
+            "ptr",
+            "pub",
+            "push",
+            "replace",
+            "return",
+            "self",
+            "set",
+            "size_of",
+            "slice",
+            "std",
+            "store",
+            "str",
+            "struct",
+            "temp",
+            "u",
+            "unsafe",
+            "use",
+            "usize",
+            "val",
+            "vec",
+            "with_capacity",
         ];
 
         for word in WORDS.iter() {
-
             if is_match(filter, bloom(word)) {
                 matches += 1;
             }

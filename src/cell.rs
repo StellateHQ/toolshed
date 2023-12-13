@@ -15,7 +15,7 @@ pub struct CopyCell<T> {
     /// We trick the compiler to think that `CopyCell` contains a raw pointer,
     /// this way we make sure the `Sync` marker is not implemented and `CopyCell`
     /// cannot be shared across threads!
-    _no_sync: PhantomData<*mut T>
+    _no_sync: PhantomData<*mut T>,
 }
 
 /// `Sync` is unsafe due to mutability, however `Send` is totally fine!
@@ -26,7 +26,7 @@ impl<T> CopyCell<T> {
     pub const fn new(value: T) -> Self {
         CopyCell {
             value,
-            _no_sync: PhantomData
+            _no_sync: PhantomData,
         }
     }
 }
@@ -71,7 +71,7 @@ mod test {
     #[test]
     fn cell() {
         let cell_a = CopyCell::new(42u64);
-        let cell_b = cell_a;  // copy
+        let cell_b = cell_a; // copy
         let cell_c = &cell_a; // reference
 
         assert_eq!(cell_a.get(), 42);

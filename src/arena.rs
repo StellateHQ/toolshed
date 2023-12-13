@@ -1,11 +1,11 @@
 //! Module containing the `Arena` and `Uninitialized` structs. For convenience the
 //! `Arena` is exported at the root of the crate.
 
+use std::borrow::Cow;
+use std::cell::Cell;
+use std::fmt;
 use std::mem::size_of;
 use std::ops::Deref;
-use std::cell::Cell;
-use std::borrow::Cow;
-use std::fmt;
 
 const ARENA_BLOCK: usize = 64 * 1024;
 
@@ -198,23 +198,27 @@ impl Arena {
     ///
     /// The slice will be at maximum length `n`, further elements of the iterator ignored and not evaluated.
     /// If the iterator yields less than `n` elements, a shorter slice will simply be returned.
-    pub fn alloc_lazy_slice<'arena, T, I: Iterator<Item=T>>(&'arena self, vals: I, n: usize) -> &'arena [T] {
-      // Grab space for `n` elements even if it may turn out we have to walk it back
-      let ptr = self.require(n * size_of::<T>()) as *mut T;
-      let mut i: usize = 0; 
+    pub fn alloc_lazy_slice<'arena, T, I: Iterator<Item = T>>(
+        &'arena self,
+        vals: I,
+        n: usize,
+    ) -> &'arena [T] {
+        // Grab space for `n` elements even if it may turn out we have to walk it back
+        let ptr = self.require(n * size_of::<T>()) as *mut T;
+        let mut i: usize = 0;
 
-      unsafe {
-        use std::slice::from_raw_parts;
+        unsafe {
+            use std::slice::from_raw_parts;
 
-        for val in vals.take(n) {
-          *ptr.offset(i as isize) = val;
-          i += 1;
+            for val in vals.take(n) {
+                *ptr.offset(i as isize) = val;
+                i += 1;
+            }
+            // Now fix the slice length and arena offset
+            let diff = n - i;
+            self.reset_to(self.offset() - diff * size_of::<T>());
+            from_raw_parts(ptr, i)
         }
-        // Now fix the slice length and arena offset
-        let diff = n - i;
-        self.reset_to( self.offset() - diff * size_of::<T>() );
-        from_raw_parts(ptr, i)
-      }
     }
 
     /// Put a `Vec<T>` on the arena without reallocating.
@@ -227,9 +231,8 @@ impl Arena {
 
         mem::forget(val);
 
-        let out = self.alloc_byte_vec(unsafe {
-            Vec::from_raw_parts(ptr as _, 0, cap * size_of::<T>())
-        });
+        let out =
+            self.alloc_byte_vec(unsafe { Vec::from_raw_parts(ptr as _, 0, cap * size_of::<T>()) });
 
         unsafe { slice::from_raw_parts(out as _, len) }
     }
@@ -241,7 +244,7 @@ impl Arena {
         T: Sized + Copy + 'input,
     {
         match vals {
-            Cow::Owned(vec)      => self.alloc_vec(vec),
+            Cow::Owned(vec) => self.alloc_vec(vec),
             Cow::Borrowed(slice) => self.alloc_slice(slice),
         }
     }
@@ -286,8 +289,8 @@ impl Arena {
         let ptr = self.alloc_byte_vec(val.into_bytes());
 
         unsafe {
-            use std::str::from_utf8_unchecked;
             use std::slice::from_raw_parts;
+            use std::str::from_utf8_unchecked;
 
             from_utf8_unchecked(from_raw_parts(ptr, len))
         }
@@ -315,11 +318,11 @@ impl Arena {
             return self.alloc_bytes(size);
         }
 
-        let size = match size % size_of::<usize>() {
+        let align = std::mem::align_of_val(&5i64);
+        let size = match size % align {
             0 => size,
-            n => size + (size_of::<usize>() - n),
+            n => size + (align - n),
         };
-
         let offset = self.offset.get();
         let cap = offset + size;
 
@@ -447,20 +450,20 @@ mod test {
 
     #[test]
     fn alloc_lazy_slices() {
-      let arena = Arena::new();
-      let nums: [u32; 6] = [1, 2, 3, 4, 5, 1000];
-      let big_nums: [u32; 6] = [100, 200, 300, 400, 500, 1050];
+        let arena = Arena::new();
+        let nums: [u32; 6] = [1, 2, 3, 4, 5, 1000];
+        let big_nums: [u32; 6] = [100, 200, 300, 400, 500, 1050];
 
-      // Put the whole array in the arena
-      let all_nums = arena.alloc_lazy_slice(nums.iter().map(|x| *x), 6);
-      // Truncate it using the `n` argument
-      let trunc_nums = arena.alloc_lazy_slice(big_nums.iter().map(|x| *x), 3);
-      // Put a whole array of half the nums in the arena
-      let half_nums = arena.alloc_lazy_slice(nums[0..3].iter().map(|x| *x), 6);
+        // Put the whole array in the arena
+        let all_nums = arena.alloc_lazy_slice(nums.iter().map(|x| *x), 6);
+        // Truncate it using the `n` argument
+        let trunc_nums = arena.alloc_lazy_slice(big_nums.iter().map(|x| *x), 3);
+        // Put a whole array of half the nums in the arena
+        let half_nums = arena.alloc_lazy_slice(nums[0..3].iter().map(|x| *x), 6);
 
-      assert!(nums.iter().eq(all_nums.iter()));
-      assert!(nums[0..3].iter().eq(half_nums.iter()));
-      assert!(big_nums[0..3].iter().eq(trunc_nums.iter()));
+        assert!(nums.iter().eq(all_nums.iter()));
+        assert!(nums[0..3].iter().eq(half_nums.iter()));
+        assert!(big_nums[0..3].iter().eq(trunc_nums.iter()));
     }
 
     #[test]
@@ -470,7 +473,10 @@ mod test {
         assert_eq!(arena.alloc_slice(b"foo"), b"foo");
         assert_eq!(arena.offset.get(), 8);
 
-        assert_eq!(arena.alloc_slice(b"doge to the moon!"), b"doge to the moon!");
+        assert_eq!(
+            arena.alloc_slice(b"doge to the moon!"),
+            b"doge to the moon!"
+        );
         assert_eq!(arena.offset.get(), 32);
     }
 
@@ -492,10 +498,7 @@ mod test {
         let allocated = unsafe { ::std::slice::from_raw_parts(nts.as_ptr(), 12) };
 
         assert_eq!(arena.offset.get(), 16);
-        assert_eq!(
-            allocated,
-            "abcdefghijk\u{0}".as_bytes(),
-        );
+        assert_eq!(allocated, "abcdefghijk\u{0}".as_bytes(),);
 
         assert_eq!(&**nts, "abcdefghijk");
     }

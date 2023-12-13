@@ -21,7 +21,7 @@ impl<'arena, T> List<'arena, T> {
     /// Create a new empty `List`.
     pub const fn empty() -> Self {
         List {
-            root: CopyCell::new(None)
+            root: CopyCell::new(None),
         }
     }
 
@@ -38,7 +38,7 @@ impl<'arena, T> List<'arena, T> {
     #[inline]
     pub fn iter(&self) -> ListIter<'arena, T> {
         ListIter {
-            next: self.root.get()
+            next: self.root.get(),
         }
     }
 
@@ -58,7 +58,7 @@ impl<'arena, T> List<'arena, T> {
                 ref next,
                 ..
             }) if next.get().is_none() => Some(value),
-            _                          => None
+            _ => None,
         }
     }
 
@@ -87,20 +87,21 @@ impl<'arena, T: Copy> List<'arena, T> {
         List {
             root: CopyCell::new(Some(arena.alloc(ListNode {
                 value,
-                next: CopyCell::new(None)
-            })))
+                next: CopyCell::new(None),
+            }))),
         }
     }
 
     /// Create a list from an iterator of items.
-    pub fn from_iter<I>(arena: &'arena Arena, source: I) -> List<'arena, T> where
-        I: IntoIterator<Item = T>
+    pub fn from_iter<I>(arena: &'arena Arena, source: I) -> List<'arena, T>
+    where
+        I: IntoIterator<Item = T>,
     {
         let mut iter = source.into_iter();
 
         let builder = match iter.next() {
             Some(item) => ListBuilder::new(arena, item),
-            None       => return List::empty(),
+            None => return List::empty(),
         };
 
         for item in iter {
@@ -113,12 +114,10 @@ impl<'arena, T: Copy> List<'arena, T> {
     /// Adds a new element to the beginning of the list.
     #[inline]
     pub fn prepend(&self, arena: &'arena Arena, value: T) -> &'arena T {
-        let root = arena.alloc(
-            ListNode {
-                value,
-                next: self.root
-            }
-        );
+        let root = arena.alloc(ListNode {
+            value,
+            next: self.root,
+        });
 
         self.root.set(Some(root));
 
@@ -146,7 +145,7 @@ impl<'arena, T: Copy> List<'arena, T> {
         let list_item = self.root.get()?;
 
         *self = List {
-            root: list_item.next
+            root: list_item.next,
         };
 
         Some(&list_item.value)
@@ -190,12 +189,12 @@ where
     pub fn push(&self, arena: &'arena Arena, item: T) {
         let next = Some(&*arena.alloc(ListNode {
             value: item,
-            next: CopyCell::new(None)
+            next: CopyCell::new(None),
         }));
 
         match self.last.get() {
             Some(ref last) => last.next.set(next),
-            None           => self.first.set(next),
+            None => self.first.set(next),
         }
 
         self.last.set(next);
@@ -214,9 +213,7 @@ impl<'arena, T> GrowableList<'arena, T> {
     /// Get a `List` from the builder.
     #[inline]
     pub fn as_list(&self) -> List<'arena, T> {
-        List {
-            root: self.first
-        }
+        List { root: self.first }
     }
 }
 
@@ -237,7 +234,7 @@ impl<'arena, T: Copy> ListBuilder<'arena, T> {
     pub fn new(arena: &'arena Arena, first: T) -> Self {
         let first = arena.alloc(ListNode {
             value: first,
-            next: CopyCell::new(None)
+            next: CopyCell::new(None),
         });
 
         ListBuilder {
@@ -251,7 +248,7 @@ impl<'arena, T: Copy> ListBuilder<'arena, T> {
     pub fn push(&self, arena: &'arena Arena, item: T) {
         let next = arena.alloc(ListNode {
             value: item,
-            next: CopyCell::new(None)
+            next: CopyCell::new(None),
         });
 
         self.last.get().next.set(Some(next));
@@ -264,7 +261,7 @@ impl<'arena, T> ListBuilder<'arena, T> {
     #[inline]
     pub fn as_list(&self) -> List<'arena, T> {
         List {
-            root: CopyCell::new(Some(self.first))
+            root: CopyCell::new(Some(self.first)),
         }
     }
 }
@@ -281,14 +278,17 @@ impl UnsafeList {
     /// will lead to undefined behavior. Use with extreme care.
     pub unsafe fn into_list<'arena, T>(self) -> List<'arena, T> {
         List {
-            root: CopyCell::new(self.root.map(|ptr| &*(ptr.get() as *const ListNode<'arena, T>))),
+            root: CopyCell::new(
+                self.root
+                    .map(|ptr| &*(ptr.get() as *const ListNode<'arena, T>)),
+            ),
         }
     }
 }
 
 /// An iterator over the items in the list.
 pub struct ListIter<'arena, T> {
-    next: Option<&'arena ListNode<'arena, T>>
+    next: Option<&'arena ListNode<'arena, T>>,
 }
 
 impl<'arena, T> Iterator for ListIter<'arena, T> {
