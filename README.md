@@ -7,6 +7,10 @@ For all those times when you need to create a recursively nested tree
 of `enum`s and find yourself in pain having to put everything in
 `Box`es all the time.
 
+## Differences to the upstream repo
+- Fixed an alignment issue as described [here](https://github.com/ratel-rust/toolshed/issues/11#issuecomment-1573659455). We're not confident in this fix but it's the best thing we have for now.
+- Rust version is locked to 1.73.0 as this is the last version that compiles (1.74 does not compile Toolshed anymore).
+
 ## Features
 
 + Paginated `Arena`: internally preallocates 64KiB _pages_ on the heap and
